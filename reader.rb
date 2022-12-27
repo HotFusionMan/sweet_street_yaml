@@ -71,7 +71,7 @@ module SweetStreetYaml
       @stream = stream
     end
 
-    attr_reader :index, :column
+    attr_reader :encoding, :index, :column, :line
 
     def reset_reader
       @name = nil
@@ -188,25 +188,25 @@ module SweetStreetYaml
 
     @@_printable_ascii = ("\x09\x0A\x0D" + (0x20..0x7F).map(&:chr).join)#.encode('ascii')
 
-    def self._get_non_printable_ascii(cls, data)
+    def self._get_non_printable_ascii(data)
       ascii_bytes = data.encode('ascii')
-      non_printables = ascii_bytes.tr(@@_printable_ascii, nil)
+      non_printables = ascii_bytes.tr(@@_printable_ascii, '')
       return nil if non_printables.empty?
       non_printable = non_printables[0...-1]
       return ascii_bytes.index(non_printable), non_printable.decode('ascii')
     end
 
-    def self._get_non_printable_regex(cls, data)
+    def self._get_non_printable_regex(data)
       match = NON_PRINTABLE.match(data)
       return nil unless match.to_boolean
       return match.begin, match[0]
     end
 
-    def self._get_non_printable(cls, data)
+    def self._get_non_printable(data)
       begin
-        return cls._get_non_printable_ascii(data)
-      rescue UnicodeEncodeError
-        return cls._get_non_printable_regex(data)
+        _get_non_printable_ascii(data)
+      rescue EncodingError
+        _get_non_printable_regex(data)
       end
     end
 

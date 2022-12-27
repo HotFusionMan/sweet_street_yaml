@@ -27,6 +27,8 @@
 #
 # Read comments in the Scanner code for more details.
 
+require_relative './numeric_extensions'
+
 require_relative './error'
 require_relative './tokens'
 require_relative './compat'
@@ -47,6 +49,8 @@ module SweetStreetYaml
   end
 
   class Scanner
+    using NumericExtensions
+
     ASCII_LINE_ENDING = "\r\n\u{9b}"
     UNICODE_LINE_ENDING = "\u2028\u2029"
     LINE_ENDING = (ASCII_LINE_ENDING + UNICODE_LINE_ENDING).freeze
@@ -105,7 +109,7 @@ module SweetStreetYaml
       @yaml_version = nil
     end
 
-    attr_reader :yaml_version
+    attr_reader :yaml_version, :possible_simple_keys
 
     def flow_level
       @flow_context.size
@@ -335,7 +339,7 @@ module SweetStreetYaml
       possible_simple_keys.each do |level|
         key = possible_simple_keys[level]
         if min_token_number.nil? || (key.token_number < min_token_number)
-          min_token_number = key.token_number
+          min_token_number = key&.token_number
         end
       end
       min_token_number
@@ -359,7 +363,7 @@ module SweetStreetYaml
               reader.get_mark
             )
           end
-          @possible_simple_keys[level] = nil
+          @possible_simple_keys.delete(level)
         end
       end
     end
@@ -373,7 +377,7 @@ module SweetStreetYaml
       required = (flow_level != 0) && (@indent == reader.column)
 
       # The next token might be a simple key. Let's save its number and position.
-      if allow_simple_key
+      if @allow_simple_key
         remove_possible_simple_key
         token_number = @tokens_taken + @tokens.size
         @possible_simple_keys[flow_level] = SimpleKey.new(token_number, required, reader.index, reader.line, reader.column, reader.get_mark)
@@ -443,7 +447,7 @@ module SweetStreetYaml
       # Read the token.
       mark = reader.get_mark
       # Add STREAM-START.
-      @tokens.append(StreamStartToken.new(mark, mark, encoding=reader.encoding))
+      @tokens.append(StreamStartToken.new(mark, mark, reader.encoding))
     end
 
     def fetch_stream_end
@@ -1320,7 +1324,7 @@ module SweetStreetYaml
         raise ScannerError.new(
           'while scanning a block scalar',
           start_mark,
-          "expected a comment or a line break, but found #{ch}", 
+          "expected a comment or a line break, but found #{ch}",
           reader.get_mark
         )
       end
@@ -1435,7 +1439,7 @@ module SweetStreetYaml
             raise ScannerError.new(
               'while scanning a double-quoted scalar',
               start_mark,
-              "found unknown escape character #{ch}", 
+              "found unknown escape character #{ch}",
               reader.get_mark
               )
           end
@@ -1783,6 +1787,8 @@ module SweetStreetYaml
   end
 
   class RoundTripScanner < Scanner
+    using NumericExtensions
+
     def check_token(*choices)
       # Check if the next token is one of the given types.
       while need_more_tokens
@@ -1809,7 +1815,7 @@ module SweetStreetYaml
       # combine multiple comment lines and assign to next non-comment-token
       comments = []
       return comments if @tokens.empty?
-      if @tokens[0].intance_of?(CommentToken)
+      if @tokens[0].instance_of?(CommentToken)
         comment = @tokens.pop(0)
         @tokens_taken += 1
         comments.append(comment)
@@ -1855,11 +1861,11 @@ module SweetStreetYaml
           @tokens[0].end_mark.line == @tokens[1].start_mark.line
         )
           @tokens_taken += 1
-          c = @tokens.pop(1)
+          c = @tokens.delete_at(1)
           fetch_more_tokens
           while @tokens.size > 1 && @tokens[1].instance_of?(CommentToken)
             @tokens_taken += 1
-            c1 = @tokens.pop(1)
+            c1 = @tokens.delete_at(1)
             c.value = c.value + (' ' * c1.start_mark.column) + c1.value
             fetch_more_tokens
           end
@@ -1871,7 +1877,7 @@ module SweetStreetYaml
           @tokens[0].end_mark.line != @tokens[1].start_mark.line
         )
           @tokens_taken += 1
-          c = @tokens.pop(1)
+          c = @tokens.delete_at(1)
           c.value = (
           '\n' * (c.start_mark.line - @tokens[0].end_mark.line)
           + (' ' * c.start_mark.column)
@@ -1881,13 +1887,13 @@ module SweetStreetYaml
           fetch_more_tokens
           while len(@tokens) > 1 and isinstance(@tokens[1], CommentToken)
             @tokens_taken += 1
-            c1 = @tokens.pop(1)
+            c1 = @tokens.delete_at(1)
             c.value = c.value + (' ' * c1.start_mark.column) + c1.value
             fetch_more_tokens
           end
         end
         @tokens_taken += 1
-        return @tokens.pop(0)
+        return @tokens.delete_at(0)
       end
       # return nil
     end
@@ -1896,7 +1902,7 @@ module SweetStreetYaml
       value = comment[0]
       start_mark = comment[1]
       end_mark = comment[2]
-      while value&.last == ' '
+      while value&.slice(-1) == ' '
         # empty line within indented key context
         # no need to update end-mark, that is not used
         value.chop!
@@ -1953,7 +1959,7 @@ module SweetStreetYaml
           end
           # gather any blank lines following the comment too
           ch = scan_line_break
-          while ch.sie > 0
+          while ch.size > 0
             comment += ch
             ch = scan_line_break
           end
@@ -2253,6 +2259,8 @@ module SweetStreetYaml
 
 
   class RoundTripScannerSC < Scanner  # RoundTripScanner Split Comments
+    using NumericExtensions
+
     def initialize(*arg, **kw)
       super(*arg, **kw)
       raise if @loader.nil?

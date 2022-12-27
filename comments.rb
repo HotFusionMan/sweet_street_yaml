@@ -1072,8 +1072,11 @@ module SweetStreetYaml
       end
     end
 
-    def raise_immutable(cls, *args, **kwargs)
-      raise TypeError.new('{} objects are immutable'.format(cls.__name__))
+    def self.raise_immutable(*args, **kwargs)
+      raise TypeError.new("{name} objects are immutable")
+    end
+    def raise_immutable(*args, **kwargs)
+      self.class.raise_immutable(*args, **kwargs)
     end
 
     alias :delete :raise_immutable

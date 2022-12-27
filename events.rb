@@ -8,24 +8,26 @@
 # Abstract classes.
 
 
-def CommentCheck
-end
-
 module SweetStreetYaml
-  SHOW_LINES = false
 
   class Event
+    SHOW_LINES = false
+
     attr_accessor :start_mark, :end_mark, :comment
 
-    def initialize(start_mark: nil, end_mark: nil, comment: CommentCheck)
+    def initialize(start_mark: nil, end_mark: nil, comment: comment_check)
       @start_mark = start_mark
       @end_mark = end_mark
       @comment =
-        if comment == CommentCheck
+        if comment == comment_check
           nil
         else
           comment
         end
+    end
+
+    def comment_check
+      nil
     end
 
     def to_s
@@ -41,29 +43,24 @@ module SweetStreetYaml
           v = __send__(key)
           arguments.append("#{key}=#{v}") if v
         end
-        arguments.append("comment=#{@comment}") unless [nil, CommentCheck].include?(comment)
+        arguments.append("comment=#{@comment}") unless [nil, comment_check].include?(comment)
         if SHOW_LINES
           arguments.append(
-            '({}:{}/{}:{})'.format(
-              @start_mark.line,
-              @start_mark.column,
-              @end_mark.line,
-              @end_mark.column,
-              )
+            "(#{@start_mark.line}:#{@start_mark.column}/#{@end_mark.line}:#{@end_mark.column})"
           )
         end
         arguments = arguments.join(', ')
-        # else
-        #     attributes = [
-        #         key
-        #         for key in ['anchor', 'tag', 'implicit', 'value', 'flow_style', 'style']
-        #         if hasattr(self, key)
-        #     ]
-        #     arguments = ', '.join(
-        #         [_F('{k!s}={attr!r}', k=key, attr=getattr(self, key)) for key in attributes]
-        #     )
-        #     if comment  !in [nil, CommentCheck]
-        #         arguments += ', comment={!r}'.format(comment)
+      # else
+      #     attributes = [
+      #         key
+      #         for key in ['anchor', 'tag', 'implicit', 'value', 'flow_style', 'style']
+      #         if hasattr(self, key)
+      #     ]
+      #     arguments = ', '.join(
+      #         [_F('{k!s}={attr!r}', k=key, attr=getattr(self, key)) for key in attributes]
+      #     )
+      #     if comment  !in [nil, comment_check]
+      #         arguments += ', comment={!r}'.format(comment)
       end
       "#{self.class.name}(#{arguments})"
     end
@@ -73,8 +70,8 @@ module SweetStreetYaml
   class NodeEvent < Event
     attr_accessor :anchor
 
-    def initialize(anchor, start_mark: nil, end_mark: nil, comment: nil)
-      super
+    def initialize(anchor:, start_mark: nil, end_mark: nil, comment: nil)
+      super(:start_mark => nil, :end_mark => nil, :comment => nil)
       @anchor = anchor
     end
   end
@@ -84,16 +81,16 @@ module SweetStreetYaml
     attr_accessor :tag, :implicit, :flow_style, :nr_items
 
     def initialize(
-      anchor,
-      tag,
-      implicit,
+      anchor:,
+      tag:,
+      implicit:,
       start_mark: nil,
       end_mark: nil,
       flow_style: nil,
       comment: nil,
       nr_items: nil
     )
-      super(anchor, :start_mark => start_mark, :end_mark => end_mark, :comment => comment)
+      super(:anchor => anchor, :start_mark => start_mark, :end_mark => end_mark, :comment => comment)
       @tag = tag
       @implicit = implicit
       @flow_style = flow_style
@@ -110,7 +107,7 @@ module SweetStreetYaml
 
 
   class StreamStartEvent < Event
-    attr_accessor :encoding
+    attr_accessor :encoding, :anchor
 
     def initialize(start_mark: nil, end_mark: nil, encoding: nil, comment: nil)
       super(:start_mark => start_mark, :end_mark => end_mark, :comment => comment)
@@ -155,8 +152,8 @@ module SweetStreetYaml
   class AliasEvent < NodeEvent
     attr_accessor :style
 
-    def initialize(anchor, start_mark: nil, end_mark: nil, style: nil, comment: nil)
-      super(anchor, :start_mark => start_mark, :end_mark => end_mark, :comment => comment)
+    def initialize(anchor:, start_mark: nil, end_mark: nil, style: nil, comment: nil)
+      super(:anchor => anchor, :start_mark => start_mark, :end_mark => end_mark, :comment => comment)
       @style = style
     end
   end
@@ -166,16 +163,16 @@ module SweetStreetYaml
     attr_accessor :tag, :implicit, :value, :style
 
     def initialize(
-      anchor,
-      tag,
-      implicit,
-      value,
+      anchor:,
+      tag:,
+      implicit:,
+      value:,
       start_mark: nil,
       end_mark: nil,
       style: nil,
       comment: nil
     )
-      super(anchor, :start_mark => start_mark, :end_mark => end_mark, :comment => comment)
+      super(:anchor => anchor, :start_mark => start_mark, :end_mark => end_mark, :comment => comment)
       @tag = tag
       @implicit = implicit
       @value = value

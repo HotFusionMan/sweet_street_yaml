@@ -128,27 +128,27 @@ module SweetStreetYaml
       nil
     end
 
-    def self.add_implicit_resolver_base(cls, tag, regexp, first)
-      if cls.yaml_implicit_resolvers.nil?
-        cls.yaml_implicit_resolvers ||= {}
-        cls.yaml_implicit_resolvers.each { |k, v| cls.yaml_implicit_resolvers[k] = [k, v] }
+    def self.add_implicit_resolver_base(tag, regexp, first)
+      if yaml_implicit_resolvers.nil?
+        yaml_implicit_resolvers ||= {}
+        yaml_implicit_resolvers.each { |k, v| yaml_implicit_resolvers[k] = [k, v] }
       end
       first = [nil] unless first
       first.each do |ch|
-        cls.yaml_implicit_resolvers.fetch(ch) do |ch|
-          cls.yaml_implicit_resolvers[ch] ||= []
-          cls.yaml_implicit_resolvers[ch].append([tag, regexp])
+        yaml_implicit_resolvers.fetch(ch) do |ch|
+          yaml_implicit_resolvers[ch] ||= []
+          yaml_implicit_resolvers[ch].append([tag, regexp])
         end
       end
     end
 
-    def self.add_implicit_resolver(cls, tag, regexp, first)
-      add_implicit_resolver_base(cls, tag, regexp, first)
+    def self.add_implicit_resolver(tag, regexp, first)
+      add_implicit_resolver_base(tag, regexp, first)
       IMPLICIT_RESOLVERS.append([[[1, 2], [1, 1]], tag, regexp, first])
     end
 
 =begin
-    def self.add_path_resolver(cls, tag, path, kind: nil)
+    def self.add_path_resolver(tag, path, kind: nil)
         # Note: `add_path_resolver` is experimental.  The API could be changed.
         # `new_path` is a pattern that is matched against the path from the
         # root to the node that is being considered.  `node_path` elements are
@@ -161,8 +161,8 @@ module SweetStreetYaml
         # a mapping value that corresponds to a scalar key which content is
         # equal to the `index_check` value.  An integer `index_check` matches
         # against a sequence value with the index equal to `index_check`.
-        if 'yaml_path_resolvers'  !in cls.__dict__
-            cls.yaml_path_resolvers = cls.yaml_path_resolvers.copy()
+        if 'yaml_path_resolvers' not in cls.__dict__
+            yaml_path_resolvers = yaml_path_resolvers.copy()
         new_path = []  # type: List[Any]
         for element in path
             if isinstance(element, (list, tuple))
@@ -205,7 +205,7 @@ module SweetStreetYaml
             kind = MappingNode
         elsif kind  !in [ScalarNode, SequenceNode, MappingNode] && kind !.nil?
             raise ResolverError.new(_F('Invalid node kind: {kind!s}', kind=kind))
-        cls.yaml_path_resolvers[tuple(new_path), kind] = tag
+        yaml_path_resolvers[tuple(new_path), kind] = tag
 =end
 
     def descend_resolver(current_node, current_index) # checked
@@ -357,7 +357,7 @@ IMPLICIT_RESOLVERS.each { |ir| Resolver.add_implicit_resolver_base(*ir[1..-1]) i
         resolvers.each { |tag, regexp| return tag if regexp.match?(value) }
         implicit = implicit[1]
       end
-      unless self.class.yaml_path_resolvers.empty?
+      if self.class.yaml_path_resolvers && !self.class.yaml_path_resolvers.empty?
         exact_paths = @resolver_exact_paths[-1]
         return exact_paths[kind] if exact_paths.has_key?(kind)
         return exact_paths[:none] if exact_paths.has_key?(:none)

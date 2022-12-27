@@ -190,6 +190,7 @@ SHOW_LINES = true
 
 
   class BlockSequenceStartToken < Token
+    attr_accessor :encoding
     @id = '<block sequence start>'
   end
 

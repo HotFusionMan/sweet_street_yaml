@@ -156,7 +156,7 @@ module SweetStreetYaml
       if @serialized_nodes.include?(node)
         node_style = node.__send__('style')
         node_style = nil if node_style != '?'
-        emitter.emit(AliasEvent.new(anchor_alias, :style => node_style))
+        emitter.emit(AliasEvent.new(:anchor => anchor_alias, :style => node_style))
       else
         @serialized_nodes[node] = true
         resolver.descend_resolver(parent, index)
@@ -172,10 +172,10 @@ module SweetStreetYaml
           ]
           emitter.emit(
             ScalarEvent.new(
-              anchor_alias,
-              node.tag,
-              implicit,
-              node.value,
+              :anchor => anchor_alias,
+              :tag => node.tag,
+              :implicit => implicit,
+              :value => node.value,
               :style => node.style,
               :comment => node.comment
             )

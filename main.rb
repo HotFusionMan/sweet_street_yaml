@@ -183,7 +183,8 @@ module SweetStreetYaml
       end
     end
 
-    attr_reader :version
+    attr_reader :version, :typ, :comment_handling
+    attr_accessor :_reader, :_constructor, :_parser, :_scanner, :_resolver, :_composer
 
     def reader
       @_reader ||= @Reader.new(nil, self)
@@ -210,13 +211,13 @@ module SweetStreetYaml
     end
 
     def composer
-      @_composer ||= Composer.new(:loader => self)
+      @_composer ||= Composer.new(self)
     end
 
     def constructor
       unless @_constructor
-        cnst = @Constructor.new(:preserve_quotes => preserve_quotes, :loader => self)
-        cnst.allow_duplicate_keys = @allow_duplicate_keys
+        cnst = @Constructor.new(:preserve_quotes => @preserve_quotes, :loader => self)
+        # cnst.allow_duplicate_keys = @allow_duplicate_keys
         @_constructor = cnst
       end
       @_constructor
@@ -1088,20 +1089,20 @@ enc = nil
   # TODO:  Figure out whether the following two classes could be turned into Ruby that would serve the same purpose,
   # viz., allow a class to declare a class that inherits from YAMLObject, thereby allowing the class to be dumped
   # to YAML and loaded/parsed from YAML.
-  class YAMLObjectMetaclass#(type)
-    "
-      The metaclass for YAMLObject.
-      "
-
-    def initialize(cls, name, bases, kwds)
-      super(name, bases, kwds)
-      if kwds.has_key?('yaml_tag') && kwds['yaml_tag']
-        cls.yaml_constructor.add_constructor(cls.yaml_tag, cls.from_yaml)
-        cls.yaml_representer.add_representer(cls, cls.to_yaml)
-      end
-    end
-  end
-
+  # class YAMLObjectMetaclass#(type)
+  #   "
+  #     The metaclass for YAMLObject.
+  #     "
+  #
+  #   def initialize(cls, name, bases, kwds)
+  #     super(name, bases, kwds)
+  #     if kwds.has_key?('yaml_tag') && kwds['yaml_tag']
+  #       cls.yaml_constructor.add_constructor(cls.yaml_tag, cls.from_yaml)
+  #       cls.yaml_representer.add_representer(cls, cls.to_yaml)
+  #     end
+  #   end
+  # end
+  #
   # class YAMLObject#(with_metaclass(YAMLObjectMetaclass))
   #   "
   #     An object that can dump itself to a YAML stream
